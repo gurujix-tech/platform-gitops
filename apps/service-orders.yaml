@@ -1,0 +1,29 @@
+# Argo CD Application: service-orders on kind
+#
+# Prerequisite: deploy/helm/service-orders must exist on
+# github.com/gurujix-tech/service-orders main (push your local deploy/ first).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: service-orders
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/gurujix-tech/service-orders.git
+    targetRevision: HEAD
+    path: deploy/helm/service-orders
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
