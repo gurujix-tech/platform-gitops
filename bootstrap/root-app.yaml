@@ -1,0 +1,32 @@
+# App-of-apps: Argo manages Applications declared under platform-gitops/apps/
+#
+# Apply once (bootstrap):
+#   kubectl apply -f bootstrap/root-app.yaml
+#
+# After that, adding a new file under apps/ in THIS repo + push
+# is enough for Argo to create the child Application (no kubectl apply per app).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-gitops-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/gurujix-tech/platform-gitops.git
+    targetRevision: HEAD
+    path: apps
+    directory:
+      recurse: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

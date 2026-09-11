@@ -2,7 +2,7 @@
 
 Desired state for the Gurujix platform clusters (GitOps).
 
-**Phase 5d:** Argo CD on local **kind** (`gurujix`) reconciles apps declared here.
+**Phase 5:** Argo CD on local **kind** (`gurujix`) reconciles apps declared here.
 
 ## Mental model
 
@@ -19,26 +19,38 @@ You merge to Git
 ## Layout
 
 ```text
+bootstrap/
+  root-app.yaml         # App-of-apps (apply once) → watches apps/
 apps/
-  service-orders.yaml   # Argo Application → Helm chart in service-orders repo
+  service-orders.yaml   # Child Application → Helm chart in service-orders repo
 ```
-
-Later: more Applications, app-of-apps, env folders (`dev/`, `prod/`).
 
 ## Bootstrap (kind)
 
-1. Push `service-orders` so `deploy/helm/service-orders` exists on `main` (Argo reads GitHub, not your laptop folder).
-2. Install Argo CD on kind (see below or project README notes).
-3. `kubectl apply -f apps/service-orders.yaml`
-4. Remove any manual Helm release that conflicts:  
-   `helm uninstall service-orders -n default` (Argo will recreate from Git).
+1. Argo CD installed on kind (namespace `argocd`).
+2. Chart on GitHub: `service-orders` → `deploy/helm/service-orders`.
+3. **App-of-apps (preferred):**
+   ```sh
+   kubectl apply -f bootstrap/root-app.yaml
+   ```
+   Root syncs everything under `apps/` from this repo into `argocd`.
+4. Or apply a single child directly (early learning):
+   ```sh
+   kubectl apply -f apps/service-orders.yaml
+   ```
 
-## Create this GitHub repo
+## Drift / self-heal demo
 
-When ready:
+Git says `replicaCount: 1`. Then:
+
+```sh
+kubectl scale deploy/service-orders --replicas=2
+# within ~seconds Argo selfHeal returns replicas to 1
+kubectl get deploy service-orders
+```
+
+## Repo
 
 ```text
 https://github.com/gurujix-tech/platform-gitops
 ```
-
-Push this tree to `main`. Optional later: Argo “app of apps” that watches *this* repo.
