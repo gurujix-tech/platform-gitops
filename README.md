@@ -2,7 +2,7 @@
 
 Desired state for the Gurujix platform clusters (GitOps).
 
-**Phase 5:** Argo CD on local **kind** (`gurujix`) reconciles apps declared here.
+**Phase 5–6:** Argo CD on local **kind** (`gurujix`) reconciles apps declared here.
 
 ## Mental model
 
@@ -23,6 +23,40 @@ bootstrap/
   root-app.yaml         # App-of-apps (apply once) → watches apps/
 apps/
   service-orders.yaml   # Child Application → Helm chart in service-orders repo
+  prometheus.yaml       # Phase 6b → observability/prometheus manifests
+observability/
+  prometheus/           # Prometheus server + scrape config for service-orders
+```
+
+## Phase 6b — Prometheus scrapes service-orders
+
+**Prerequisites**
+
+1. `service-orders` Pod Running in `default` (Argo app synced).
+2. Image includes Phase 6a metrics (`GET /metrics`). Rebuild + load if needed:
+   ```sh
+   cd service-orders
+   docker build -t service-orders:local .
+   kind load docker-image service-orders:local --name gurujix
+   # Argo/Helm rollout restart or sync
+   kubectl rollout restart deploy/service-orders -n default
+   ```
+3. Push `platform-gitops` (apps/prometheus.yaml + observability/) so root app picks up the new Application, **or** apply locally:
+   ```sh
+   kubectl apply -f observability/prometheus/
+   kubectl apply -f apps/prometheus.yaml
+   ```
+
+**Verify**
+
+```sh
+kubectl get pods -n observability
+kubectl port-forward -n observability svc/prometheus 9090:9090
+# open http://127.0.0.1:9090 → Status → Targets → service-orders should be UP
+# Graph: orders_created_total or http_requests_total
+```
+
+Prometheus TSDB data lives on the Pod volume (`emptyDir` here — fine for kind learning).
 ```
 
 ## Bootstrap (kind)

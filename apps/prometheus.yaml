@@ -1,0 +1,28 @@
+# Argo CD Application: Prometheus on kind (Phase 6b)
+#
+# Scrapes service-orders GET /metrics on a schedule; stores samples in local TSDB.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/gurujix-tech/platform-gitops.git
+    targetRevision: HEAD
+    path: observability/prometheus
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

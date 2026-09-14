@@ -1,0 +1,29 @@
+# Phase 6b: Prometheus scrape config (static target for learning).
+# Later: ServiceMonitor CRDs + Prometheus Operator (kube-prometheus-stack).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: gurujix-platform
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets: ["localhost:9090"]
+
+      - job_name: service-orders
+        metrics_path: /metrics
+        static_configs:
+          - targets:
+              - service-orders.default.svc.cluster.local:80
+            labels:
+              service: service-orders
+              namespace: default
