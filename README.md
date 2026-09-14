@@ -26,8 +26,8 @@ apps/
   prometheus.yaml       # Phase 6b → observability/prometheus
   grafana.yaml          # Phase 6c → observability/grafana
 observability/
-  prometheus/           # Prometheus server + scrape config
-  grafana/              # Grafana + datasource + service-orders dashboard
+  prometheus/           # Prometheus server + scrape config for service-orders
+  grafana/              # Grafana + Prometheus datasource + service-orders dashboard
 ```
 
 ## Phase 6b — Prometheus scrapes service-orders
@@ -71,7 +71,7 @@ kubectl port-forward -n observability svc/grafana 3000:3000
 # Dashboards → Gurujix → service-orders
 ```
 
-Grafana talks to Prometheus in-cluster at `http://prometheus.observability.svc.cluster.local:9090` (no need to port-forward Prometheus for Grafana itself).
+Grafana talks to Prometheus in-cluster at `http://prometheus.observability.svc.cluster.local:9090`.
 
 ## Bootstrap (kind)
 
@@ -81,15 +81,12 @@ Grafana talks to Prometheus in-cluster at `http://prometheus.observability.svc.c
    ```sh
    kubectl apply -f bootstrap/root-app.yaml
    ```
-   Root syncs everything under `apps/` from this repo into `argocd`.
-4. Or apply a single child directly (early learning):
+4. Or apply a single child directly:
    ```sh
    kubectl apply -f apps/service-orders.yaml
    ```
 
 ## Drift / self-heal demo
-
-Git says `replicaCount: 1`. Then:
 
 ```sh
 kubectl scale deploy/service-orders --replicas=2
