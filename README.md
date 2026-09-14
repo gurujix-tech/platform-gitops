@@ -23,9 +23,11 @@ bootstrap/
   root-app.yaml         # App-of-apps (apply once) → watches apps/
 apps/
   service-orders.yaml   # Child Application → Helm chart in service-orders repo
-  prometheus.yaml       # Phase 6b → observability/prometheus manifests
+  prometheus.yaml       # Phase 6b → observability/prometheus
+  grafana.yaml          # Phase 6c → observability/grafana
 observability/
-  prometheus/           # Prometheus server + scrape config for service-orders
+  prometheus/           # Prometheus server + scrape config
+  grafana/              # Grafana + datasource + service-orders dashboard
 ```
 
 ## Phase 6b — Prometheus scrapes service-orders
@@ -38,10 +40,9 @@ observability/
    cd service-orders
    docker build -t service-orders:local .
    kind load docker-image service-orders:local --name gurujix
-   # Argo/Helm rollout restart or sync
    kubectl rollout restart deploy/service-orders -n default
    ```
-3. Push `platform-gitops` (apps/prometheus.yaml + observability/) so root app picks up the new Application, **or** apply locally:
+3. Push `platform-gitops` so root picks up the Application, **or** apply locally:
    ```sh
    kubectl apply -f observability/prometheus/
    kubectl apply -f apps/prometheus.yaml
@@ -53,11 +54,24 @@ observability/
 kubectl get pods -n observability
 kubectl port-forward -n observability svc/prometheus 9090:9090
 # open http://127.0.0.1:9090 → Status → Targets → service-orders should be UP
-# Graph: orders_created_total or http_requests_total
+# Graph: orders_created_total or rate(http_requests_total{handler!~"/health|/ready"}[1m])
 ```
 
 Prometheus TSDB data lives on the Pod volume (`emptyDir` here — fine for kind learning).
+
+## Phase 6c — Grafana dashboards
+
+```sh
+kubectl apply -f observability/grafana/
+kubectl apply -f apps/grafana.yaml   # or push + let root sync
+
+kubectl port-forward -n observability svc/grafana 3000:3000
+# open http://127.0.0.1:3000
+# login: admin / admin  (kind learning only)
+# Dashboards → Gurujix → service-orders
 ```
+
+Grafana talks to Prometheus in-cluster at `http://prometheus.observability.svc.cluster.local:9090` (no need to port-forward Prometheus for Grafana itself).
 
 ## Bootstrap (kind)
 
