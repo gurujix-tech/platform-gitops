@@ -48,4 +48,3 @@ data:
     compactor:
       working_directory: /loki/compactor
       compaction_interval: 10m
-      retain_delete_requests_for: 24h
