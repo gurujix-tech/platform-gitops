@@ -1,0 +1,24 @@
+# Phase 6e: alert rules evaluated by Prometheus (Status → Alerts).
+# Alertmanager (Slack/email) is optional later — rules alone are enough for the kind drill.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: gurujix-platform
+data:
+  service-orders.yml: |
+    groups:
+      - name: service-orders
+        rules:
+          - alert: ServiceOrdersDown
+            expr: up{job="service-orders"} == 0
+            for: 30s
+            labels:
+              severity: critical
+              service: service-orders
+            annotations:
+              summary: "service-orders Prometheus target is down"
+              description: "Scrape job service-orders has been down for more than 30s. Follow observability/runbooks/service-orders-failure-drill.md"

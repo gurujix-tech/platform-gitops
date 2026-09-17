@@ -51,7 +51,7 @@ data:
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
-          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
           "id": 3,
           "targets": [
             {
@@ -62,6 +62,51 @@ data:
           ],
           "title": "HTTP latency p95 (exclude probes)",
           "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "description": "Prometheus rule state via ALERTS series (1 = firing). No Alertmanager required.",
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                { "options": { "0": { "color": "green", "index": 0, "text": "OK" } }, "type": "value" },
+                { "options": { "1": { "color": "red", "index": 1, "text": "FIRING" } }, "type": "value" }
+              ],
+              "max": 1,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 1 }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "id": 4,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "expr": "max(ALERTS{alertname=\"ServiceOrdersDown\",alertstate=\"firing\"}) or vector(0)",
+              "legendFormat": "ServiceOrdersDown",
+              "refId": "A"
+            }
+          ],
+          "title": "ServiceOrdersDown alert",
+          "type": "stat"
         }
       ],
       "schemaVersion": 39,

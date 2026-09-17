@@ -28,7 +28,11 @@ spec:
               containerPort: 9090
           volumeMounts:
             - name: config
-              mountPath: /etc/prometheus
+              mountPath: /etc/prometheus/prometheus.yml
+              subPath: prometheus.yml
+              readOnly: true
+            - name: rules
+              mountPath: /etc/prometheus/rules
               readOnly: true
             - name: data
               mountPath: /prometheus
@@ -50,5 +54,8 @@ spec:
         - name: config
           configMap:
             name: prometheus-config
+        - name: rules
+          configMap:
+            name: prometheus-rules
         - name: data
           emptyDir: {}

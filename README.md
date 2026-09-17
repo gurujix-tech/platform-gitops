@@ -73,6 +73,15 @@ kubectl port-forward -n observability svc/grafana 3000:3000
 
 Grafana talks to Prometheus in-cluster at `http://prometheus.observability.svc.cluster.local:9090`.
 
+Dashboard includes a **ServiceOrdersDown** stat panel (`ALERTS` metric) — a view of the Prometheus rule, not Grafana Alerting (bell).
+
+## Phase 6e / 6f — Alert + failure drill
+
+- Rule: `observability/prometheus/rules-configmap.yaml` (`ServiceOrdersDown`)
+- Runbook: `observability/runbooks/service-orders-failure-drill.md`
+
+Push this repo, then let Argo sync (or `kubectl apply -f observability/prometheus/`). Pause Argo sync before a scale-to-0 drill or selfHeal restores replicas.
+
 ## Bootstrap (kind)
 
 1. Argo CD installed on kind (namespace `argocd`).
