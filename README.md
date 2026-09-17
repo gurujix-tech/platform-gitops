@@ -25,9 +25,14 @@ apps/
   service-orders.yaml   # Child Application → Helm chart in service-orders repo
   prometheus.yaml       # Phase 6b → observability/prometheus
   grafana.yaml          # Phase 6c → observability/grafana
+  loki.yaml             # Phase 6 → observability/loki
+  promtail.yaml         # Phase 6 → observability/promtail
 observability/
   prometheus/           # Prometheus server + scrape config for service-orders
-  grafana/              # Grafana + Prometheus datasource + service-orders dashboard
+  grafana/              # Grafana + datasources + service-orders dashboard
+  loki/                 # Loki (log store)
+  promtail/             # Promtail DaemonSet (stdout → Loki)
+  runbooks/             # Failure drills
 ```
 
 ## Phase 6b — Prometheus scrapes service-orders
@@ -81,6 +86,28 @@ Dashboard includes a **ServiceOrdersDown** stat panel (`ALERTS` metric) — a vi
 - Runbook: `observability/runbooks/service-orders-failure-drill.md`
 
 Push this repo, then let Argo sync (or `kubectl apply -f observability/prometheus/`). Pause Argo sync before a scale-to-0 drill or selfHeal restores replicas.
+
+## Phase 6 — Loki + Promtail (logs)
+
+```text
+service-orders stdout → Promtail (DaemonSet) → Loki → Grafana Explore
+```
+
+```sh
+# After push (root app picks up apps/loki.yaml + apps/promtail.yaml), or DIY:
+kubectl apply -f observability/loki/
+kubectl apply -f observability/promtail/
+kubectl apply -f apps/loki.yaml
+kubectl apply -f apps/promtail.yaml
+
+# Grafana needs a restart after datasource ConfigMap change
+kubectl apply -f observability/grafana/
+kubectl rollout restart deployment/grafana -n observability
+
+kubectl port-forward -n observability svc/grafana 3000:3000
+# Explore → Loki → {namespace="default", pod=~"service-orders.*"}
+# Generate traffic: POST /orders, then search for request_id in the JSON line
+```
 
 ## Bootstrap (kind)
 

@@ -1,0 +1,44 @@
+# Phase 6 — Promtail: read container stdout from the node → push to Loki.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: promtail
+    app.kubernetes.io/part-of: gurujix-platform
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /run/promtail/positions.yaml
+
+    clients:
+      - url: http://loki.observability.svc.cluster.local:3100/loki/api/v1/push
+
+    scrape_configs:
+      - job_name: kubernetes-pods
+        pipeline_stages:
+          - cri: {}
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: __host__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+          - replacement: /var/log/pods/*$1/*.log
+            separator: /
+            source_labels:
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
+            target_label: __path__

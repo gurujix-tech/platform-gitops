@@ -1,0 +1,26 @@
+# Argo CD Application: Promtail on kind (Phase 6 — log shipper → Loki)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: promtail
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/gurujix-tech/platform-gitops.git
+    targetRevision: HEAD
+    path: observability/promtail
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
