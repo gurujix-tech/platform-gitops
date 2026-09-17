@@ -12,6 +12,7 @@ data:
     server:
       http_listen_port: 9080
       grpc_listen_port: 0
+      log_level: info
 
     positions:
       filename: /run/promtail/positions.yaml
@@ -19,26 +20,46 @@ data:
     clients:
       - url: http://loki.observability.svc.cluster.local:3100/loki/api/v1/push
 
+    target_config:
+      sync_period: 10s
+
     scrape_configs:
+      # Primary: discover pods via the API and map to /var/log/pods/... (kind/containerd).
       - job_name: kubernetes-pods
         pipeline_stages:
           - cri: {}
         kubernetes_sd_configs:
           - role: pod
         relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_node_name]
-            target_label: __host__
-          - action: labelmap
-            regex: __meta_kubernetes_pod_label_(.+)
-          - source_labels: [__meta_kubernetes_namespace]
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node_name
+          - action: replace
+            source_labels: [__meta_kubernetes_namespace]
             target_label: namespace
-          - source_labels: [__meta_kubernetes_pod_name]
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_name]
             target_label: pod
-          - source_labels: [__meta_kubernetes_pod_container_name]
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_container_name]
             target_label: container
-          - replacement: /var/log/pods/*$1/*.log
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            target_label: app
+          - action: replace
+            replacement: /var/log/pods/*$1/*.log
             separator: /
             source_labels:
               - __meta_kubernetes_pod_uid
               - __meta_kubernetes_pod_container_name
             target_label: __path__
+
+      # Fallback for kind: glob every pod log file if SD path mapping misses.
+      - job_name: kubernetes-pods-glob
+        pipeline_stages:
+          - cri: {}
+        static_configs:
+          - targets: [localhost]
+            labels:
+              job: kubernetes-pods-glob
+              __path__: /var/log/pods/*/*/*.log
