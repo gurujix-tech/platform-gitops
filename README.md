@@ -27,12 +27,16 @@ apps/
   grafana.yaml          # Phase 6c → observability/grafana
   loki.yaml             # Phase 6 → observability/loki
   promtail.yaml         # Phase 6 → observability/promtail
+  kyverno.yaml          # Phase 7d → Kyverno Helm chart
+  platform-policies.yaml # Phase 7d → policy/ ClusterPolicies
 observability/
   prometheus/           # Prometheus server + scrape config for service-orders
   grafana/              # Grafana + datasources + service-orders dashboard
   loki/                 # Loki (log store)
   promtail/             # Promtail DaemonSet (stdout → Loki)
   runbooks/             # Failure drills
+policy/                 # Kyverno ClusterPolicies (enforced)
+drills/                 # Manual deny/allow drills (not synced by Argo)
 ```
 
 ## Phase 6b — Prometheus scrapes service-orders
@@ -108,6 +112,24 @@ kubectl port-forward -n observability svc/grafana 3000:3000
 # Explore → Loki → {namespace="default", pod=~"service-orders.*"}
 # Generate traffic: POST /orders, then search for request_id in the JSON line
 ```
+
+## Phase 7d — Kyverno policy (enforce 7c baseline)
+
+```text
+kubectl apply bad Pod in default → Kyverno webhook DENY
+service-orders (compliant Helm) → ALLOW
+```
+
+1. Push `platform-gitops` (apps/kyverno.yaml, apps/platform-policies.yaml, policy/).
+2. Wait until Application `kyverno` is Healthy, then `platform-policies` Synced.
+3. Deny drill (not synced by Argo):
+
+```sh
+kubectl apply -f drills/phase-7d-bad-pod-root.yaml
+# expect: admission webhook denied ... require-workload-security-baseline
+```
+
+Policy scope: **namespace `default` only** (Promtail in `observability` stays root for host log paths).
 
 ## Bootstrap (kind)
 

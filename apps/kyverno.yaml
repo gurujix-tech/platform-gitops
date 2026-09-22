@@ -1,0 +1,41 @@
+# Phase 7d: Kyverno admission controller (Helm via Argo).
+# Installs into namespace kyverno; policies live in policy/ (separate Application).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    chart: kyverno
+    repoURL: https://kyverno.github.io/kyverno/
+    targetRevision: 3.3.7
+    helm:
+      # Kind-friendly: single replica of each controller.
+      values: |
+        admissionController:
+          replicas: 1
+        backgroundController:
+          replicas: 1
+        reportsController:
+          replicas: 1
+        cleanupController:
+          replicas: 1
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

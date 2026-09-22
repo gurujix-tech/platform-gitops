@@ -1,0 +1,31 @@
+# Phase 7d: Gurujix ClusterPolicies (enforced by Kyverno).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-policies
+  namespace: argocd
+  annotations:
+    # After Kyverno CRDs / webhook (sync-wave 0).
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/gurujix-tech/platform-gitops.git
+    targetRevision: HEAD
+    path: policy
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  # Policies need Kyverno CRDs — sync after kyverno app is Healthy.
+  ignoreDifferences: []

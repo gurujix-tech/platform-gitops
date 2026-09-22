@@ -1,0 +1,21 @@
+# Phase 7d drill: prove Kyverno blocks a bad Pod (NOT synced by Argo).
+#
+#   kubectl apply -f drills/phase-7d-bad-pod-root.yaml
+#   # expect: admission webhook denied the request
+#
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-pod-root
+  namespace: default
+  labels:
+    app.kubernetes.io/name: bad-pod-root
+    gurujix.io/purpose: phase-7d-deny-drill
+spec:
+  containers:
+    - name: pause
+      image: registry.k8s.io/pause:3.9
+      securityContext:
+        runAsUser: 0
+        allowPrivilegeEscalation: true
+        readOnlyRootFilesystem: false

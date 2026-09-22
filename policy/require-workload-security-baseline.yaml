@@ -1,0 +1,43 @@
+# Phase 7d: enforce the Phase 7c workload baseline on app Pods in `default`.
+# Observability / kube-system / argocd are out of scope (Promtail needs root for host logs).
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-workload-security-baseline
+  annotations:
+    policies.kyverno.io/title: Require workload security baseline
+    policies.kyverno.io/category: Pod Security
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Pods in the default namespace must match the Gurujix Phase 7c baseline
+      (non-root 10001, read-only root FS, no privilege escalation, drop ALL caps).
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-container-security-context
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - default
+      validate:
+        message: >-
+          Gurujix baseline: containers in namespace "default" must set
+          securityContext.runAsNonRoot=true, runAsUser=10001,
+          allowPrivilegeEscalation=false, readOnlyRootFilesystem=true,
+          and capabilities.drop=["ALL"]. See service-orders Helm values
+          (Phase 7c) and platform-gitops/policy/.
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 10001
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  capabilities:
+                    drop:
+                      - ALL
