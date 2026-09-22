@@ -37,6 +37,7 @@ observability/
   runbooks/             # Failure drills
 policy/                 # Kyverno ClusterPolicies (enforced)
 drills/                 # Manual deny/allow drills (not synced by Argo)
+docs/                   # Exception process, threat model (Phase 7 wind-up)
 ```
 
 ## Phase 6b — Prometheus scrapes service-orders
@@ -130,6 +131,12 @@ kubectl apply -f drills/phase-7d-bad-pod-root.yaml
 ```
 
 Policy scope: **namespace `default` only** (Promtail in `observability` stays root for host log paths).
+
+## Phase 7 wind-up — exceptions, threat model, SBOM
+
+- Exception process: `docs/security-exception-process.md` (owner, reason, expiry ≤ 90 days)
+- Threat model (golden path): `docs/threat-model-golden-path.md`
+- SBOM: CycloneDX artifact from `service-orders` CI (`Trivy SBOM` + upload-artifact; non-blocking)
 
 ## Bootstrap (kind)
 
