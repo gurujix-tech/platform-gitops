@@ -1,0 +1,44 @@
+# AWS Load Balancer Controller on EKS — synced by platform-gitops-eks-root (apps-eks/).
+# IRSA role + subnet tags come from platform-infrastructure (Terraform); this app only installs the controller.
+#
+# Hand-off from manual Helm (once, on EKS):
+#   helm uninstall aws-load-balancer-controller -n kube-system
+#   # push this file, then eks-root syncs — or: argocd app sync aws-load-balancer-controller
+# Existing ALBs stay; controller resumes managing them after reinstall.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aws-load-balancer-controller
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    chart: aws-load-balancer-controller
+    repoURL: https://aws.github.io/eks-charts
+    targetRevision: 3.6.0
+    helm:
+      values: |
+        clusterName: gurujix-platform
+        region: us-east-1
+        vpcId: vpc-03cda84e6d445a059
+        serviceAccount:
+          create: true
+          name: aws-load-balancer-controller
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::577572726499:role/gurujix-platform-aws-lbc
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

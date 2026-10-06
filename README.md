@@ -26,7 +26,8 @@ apps/
   service-orders.yaml   # kind: Helm defaults (local image, ingress off)
   …                     # observability, kyverno, …
 apps-eks/
-  service-orders.yaml   # EKS: Helm values-eks.yaml (ECR + ALB ingress)
+  service-orders.yaml              # EKS: Helm values-eks.yaml (ECR + ALB ingress)
+  aws-load-balancer-controller.yaml # EKS: LBC Helm chart (IRSA role from Terraform)
 observability/
   …
 ```
@@ -166,6 +167,18 @@ On **EKS** (Argo already installed):
 Do **not** apply `root-app.yaml` on EKS (it would pull kind’s observability stack).
 
 Adding another EKS app later: drop a new Application YAML under `apps-eks/`, push — no new kubectl apply.
+
+### Hand-off: AWS Load Balancer Controller → GitOps
+
+```sh
+# EKS context — after apps-eks/aws-load-balancer-controller.yaml is on GitHub main
+helm uninstall aws-load-balancer-controller -n kube-system
+# eks-root auto-syncs the Application (or Sync in UI)
+kubectl -n kube-system rollout status deploy/aws-load-balancer-controller
+curl -sI https://app.gurujix.com/health
+```
+
+ALBs already created stay; LBC resumes managing them.
 
 ## Repo
 
