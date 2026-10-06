@@ -20,24 +20,15 @@ You merge to Git
 
 ```text
 bootstrap/
-  root-app.yaml         # App-of-apps (apply once) → watches apps/
+  root-app.yaml         # kind app-of-apps → watches apps/
+  eks-root-app.yaml     # EKS app-of-apps → watches apps-eks/ (apply on EKS only)
 apps/
-  service-orders.yaml   # Child Application → Helm chart in service-orders repo
-  prometheus.yaml       # Phase 6b → observability/prometheus
-  grafana.yaml          # Phase 6c → observability/grafana
-  loki.yaml             # Phase 6 → observability/loki
-  promtail.yaml         # Phase 6 → observability/promtail
-  kyverno.yaml          # Phase 7d → Kyverno Helm chart
-  platform-policies.yaml # Phase 7d → policy/ ClusterPolicies
+  service-orders.yaml   # kind: Helm defaults (local image, ingress off)
+  …                     # observability, kyverno, …
+apps-eks/
+  service-orders.yaml   # EKS: Helm values-eks.yaml (ECR + ALB ingress)
 observability/
-  prometheus/           # Prometheus server + scrape config for service-orders
-  grafana/              # Grafana + datasources + service-orders dashboard
-  loki/                 # Loki (log store)
-  promtail/             # Promtail DaemonSet (stdout → Loki)
-  runbooks/             # Failure drills
-policy/                 # Kyverno ClusterPolicies (enforced)
-drills/                 # Manual deny/allow drills (not synced by Argo)
-docs/                   # Exception process, threat model (Phase 7 wind-up)
+  …
 ```
 
 ## Phase 6b — Prometheus scrapes service-orders
@@ -158,6 +149,23 @@ kubectl scale deploy/service-orders --replicas=2
 # within ~seconds Argo selfHeal returns replicas to 1
 kubectl get deploy service-orders
 ```
+
+## EKS app-of-apps
+
+Kind keeps using `bootstrap/root-app.yaml` → `apps/`.
+
+On **EKS** (Argo already installed):
+
+1. Commit + push `apps-eks/` and `bootstrap/eks-root-app.yaml` to this repo (root reads **GitHub**, not your laptop).
+2. Apply once:
+   ```sh
+   kubectl apply -f bootstrap/eks-root-app.yaml
+   ```
+3. Check Argo UI: `platform-gitops-eks-root` Synced, child `service-orders` Synced/Healthy.
+
+Do **not** apply `root-app.yaml` on EKS (it would pull kind’s observability stack).
+
+Adding another EKS app later: drop a new Application YAML under `apps-eks/`, push — no new kubectl apply.
 
 ## Repo
 

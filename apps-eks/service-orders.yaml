@@ -1,0 +1,31 @@
+# Child Application for EKS — synced by bootstrap/eks-root-app.yaml (apps-eks/).
+# kind continues to use apps/service-orders.yaml via bootstrap/root-app.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: service-orders
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/gurujix-tech/service-orders.git
+    targetRevision: HEAD
+    path: deploy/helm/service-orders
+    helm:
+      valueFiles:
+        - values-eks.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

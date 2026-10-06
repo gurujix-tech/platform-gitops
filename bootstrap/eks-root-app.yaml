@@ -1,0 +1,33 @@
+# App-of-apps for EKS: Argo manages Applications under platform-gitops/apps-eks/
+#
+# Apply once on the EKS cluster (after Argo is installed):
+#   kubectl apply -f bootstrap/eks-root-app.yaml
+#
+# Prerequisite: this repo's apps-eks/ is pushed to GitHub (root reads Git, not your laptop).
+#
+# Do NOT apply bootstrap/root-app.yaml on EKS — that watches kind's apps/ (observability, etc.).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-gitops-eks-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/gurujix-tech/platform-gitops.git
+    targetRevision: HEAD
+    path: apps-eks
+    directory:
+      recurse: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
